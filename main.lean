@@ -1,6 +1,7 @@
 /-
 Authors: Filippo Belfiori, Aristotele.
 -/
+
 module
 
 import Mathlib.AlgebraicGeometry.Morphisms.Etale
@@ -25,25 +26,6 @@ open CategoryTheory MorphismProperty Limits
 
 namespace AlgebraicGeometry.Scheme
 
-#check precoverage
-#check pretopology
-#check Precoverage
-
-/-
-
-Guarda la documentazione: precoverage è fatto in modo da poter definire dei Grothendieck site
-usando solo la proprietà di un morfismo. Invece Precoverage è più generale: per ogni elemento X
-della tua categoria, devi definire chi sono i suoi ricoprimenti: coverings X sarà l'insieme
-dei ricoprimenti di X.
-
-Il modo in cui li definisci è usare Presieve: Presieve X è una funzione che dato un morfismo Y → X
-restituisce una prop. è la funzione che dice quali morfismi appartengono alla famiglia.
-
-
-Stessa cosa per Pretopology dopo: non puoi usare la proprietà di un morfismo.
--/
-
-
 def NisnevichCondition (X Y : Scheme) (f : Y ⟶ X) (x : X) : Prop :=
   ∃ (y : Y), (f y = x ∧ IsIso (Hom.residueFieldMap f y))
 
@@ -55,6 +37,7 @@ def IsNisnevichCovering (X : Scheme) (S : Presieve X) : Prop :=
 
 /-- The Nisnevich condition at `x` holds iff the canonical morphism `Spec κ(x) ⟶ X`
 lifts along `f`. -/
+
 lemma NisnevichCondition_iff_exists_lift {X Y : Scheme.{u}} (f : Y ⟶ X) (x : X) :
     NisnevichCondition X Y f x ↔
       ∃ h : Spec (X.residueField x) ⟶ Y, h ≫ f = X.fromSpecResidueField x := by
@@ -124,83 +107,16 @@ instance : NisnevichPrecoverage.IsStableUnderBaseChange where
       · simp [hk]
       · simp
 
-
-
 def NisnevichPretopology : Pretopology Scheme.{u} := NisnevichPrecoverage.toPretopology
-
-
-/-
-
-Done explicitely:
-
-
-def NisnevichPretopology2 : Pretopology Scheme.{u} where
-  coverings X := {S | IsNisnevichCovering X S}
-  has_isos := by
-    intro X Y
-    intro f
-    intro hf
-    simp
-    constructor
-    · intro Y1
-      intro f1
-      intro h
-      cases h   /- because singleton is an inductive -/
-      exact Etale.instOfIsOpenImmersion f
-    · intro x
-      use Y
-      use f
-      constructor
-      · simp
-      · use inv f x
-        constructor
-        · simp [← Scheme.Hom.comp_apply]
-        · infer_instance
-  /-
-  has_isos X Y f hf := Precoverage.mem_coverings_of_isIso (J := nisnevichPrecoverage) f
-  -/
-  pullbacks X Y f S hS := NisnevichPrecoverage.pullbackArrows_mem f hS
-  transitive X R Ti hR hTi := by
-    obtain ⟨ι, Z, g, rfl⟩ := R.exists_eq_ofArrows
-    choose κ W p hp using fun ⦃Y⦄ (f : Y ⟶ X) hf ↦ (Ti f hf).exists_eq_ofArrows
-    have : (Presieve.ofArrows Z g).bind Ti =
-        .ofArrows (fun ij : Σ i, κ (g i) ⟨i⟩ ↦ W _ _ ij.2) (fun ij ↦ p _ _ ij.2 ≫ g ij.1) := by
-      apply le_antisymm
-      · rintro T u ⟨S, v, w, ⟨i⟩, hv, rfl⟩
-        rw [hp] at hv
-        obtain ⟨j⟩ := hv
-        exact .mk <| Sigma.mk (β := fun i : ι ↦ κ (g i) ⟨i⟩) i j
-      · rintro T u ⟨ij⟩
-        use Z ij.1, p (g ij.1) ⟨ij.1⟩ ij.2, g ij.1, ⟨ij.1⟩
-        rw [hp]
-        exact ⟨⟨_⟩, rfl⟩
-    rw [this]
-    refine Precoverage.comp_mem_coverings (J := NisnevichPrecoverage)
-      (Y := fun (i : ι) (j : κ (g i) ⟨i⟩) ↦ W _ _ j) (g := fun i j ↦ p _ _ j) _ hR fun i ↦ ?_
-    rw [← hp]
-    exact hTi _ _
-
-
-#check pretopology
-
-/-- The pretopology above is the one produced by `Precoverage.toPretopology`. -/
-
-theorem NisnevichPretopology_eq_toPretopology :
-    NisnevichPretopology2.{u} = NisnevichPretopology := rfl
--/
-
-
-/-- The (big) Nisnevich Grothendieck topology on the category of schemes. -/
-
 
 def NisnevichTopology : GrothendieckTopology Scheme.{u} :=
   NisnevichPretopology.toGrothendieck
 
+lemma NisnevichTopology_mem : NisnevichTopology = NisnevichPrecoverage.toGrothendieck := by
+  exact Precoverage.toGrothendieck_toPretopology_eq_toGrothendieck
 
-lemma zariskiTopology_le_etaleTopology_my : zariskiTopology ≤ etaleTopology := by
-  apply grothendieckTopology_monotone
-  intro X Y f hf
-  infer_instance
+
+/- Nisnevich topology and Zariski topology -/
 
 lemma ZariskiPrecoverage_le_NisnevichPrecoverage : zariskiPrecoverage ≤ NisnevichPrecoverage := by
   intro X S
@@ -219,20 +135,41 @@ lemma ZariskiPrecoverage_le_NisnevichPrecoverage : zariskiPrecoverage ≤ Nisnev
     have := hS.2 hf
     exact ⟨_, _, hf, y, rfl, inferInstance⟩
 
-
 lemma ZariskiPretopology_le_NisnevichPretopology : zariskiPretopology ≤ NisnevichPretopology := by
   intro X S hS
   exact ZariskiPrecoverage_le_NisnevichPrecoverage X hS
 
-
 lemma ZariskiTopology_le_NisnevichTopology : zariskiTopology ≤ NisnevichTopology := by
+  intro X S hS
+  rw [NisnevichTopology]
+  rw [zariskiTopology_eq] at hS
+  obtain ⟨R, hR, hRS⟩ := (Pretopology.mem_toGrothendieck _ X S).1 hS
+  exact (Pretopology.mem_toGrothendieck _ X S).2
+    ⟨R, ZariskiPretopology_le_NisnevichPretopology X hR, hRS⟩
 
 
+/- Nisnevich topology and etale topology -/
 
+lemma NisnevichPrecoverage_le_etalePrecoverage : NisnevichPrecoverage ≤ etalePrecoverage := by
+  intro X S
+  rw [NisnevichPrecoverage]
+  rw [etalePrecoverage]
+  intro hS
+  simp at hS
+  refine ⟨fun x ↦ ?_, fun Y f hf ↦ hS.1 f hf⟩
+  obtain ⟨_, f, hf, y, rfl, -⟩ := hS.2 x
+  exact ⟨_, _, Presieve.map.of hf, y, rfl⟩
 
+lemma NisnevichPretopology_le_EtalePretopology : NisnevichPretopology ≤ etalePretopology := by
+  intro X S hS
+  exact NisnevichPrecoverage_le_etalePrecoverage X hS
 
-#check grothendieckTopology_monotone
-
+lemma NisnevichTopology_le_etaleTopology : NisnevichTopology ≤ etaleTopology := by
+  intro X S hS
+  obtain ⟨R, hR, hRS⟩ := (Pretopology.mem_toGrothendieck _ X S).1 hS
+  have hR' : R ∈ etalePrecoverage X := NisnevichPrecoverage_le_etalePrecoverage X hR
+  apply etaleTopology.superset_covering ((Sieve.giGenerate.gc R S).2 hRS)
+  exact Precoverage.generate_mem_toGrothendieck hR'
 
 
 end AlgebraicGeometry.Scheme
