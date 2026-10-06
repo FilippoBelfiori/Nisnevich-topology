@@ -13,7 +13,7 @@ import Mathlib.CategoryTheory.Sites.Point.Basic
 
 /-!
 
-# The Nisnvich site
+# The Nisnevich site
 
 In this file we define the big Nisnevich site, i.e. the Nisnevich topology as a Grothendieck topology
 on the category of schemes.
